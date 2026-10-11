@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GrassMapper 🥾 | Touch Grass Outdoor Companion</title>
+    <!-- Mobile PWA / Web App Tags -->
+    <meta name="theme-color" content="#325e3e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Favicon (Inline Emoji) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥾</text></svg>">
+    
+    <!-- Google Fonts: Plus Jakarta Sans for friendly, modern aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Canvas Confetti for celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <!-- Leaflet.js for Interactive Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        matcha: {
+                            50: '#f4f9f5',
+                            100: '#e5f2e8',
+                            200: '#cbe4d2',
+                            300: '#a3cead',
+                            400: '#75b184',
+                            500: '#4f9460',
+                            600: '#3d774c',
+                            700: '#325e3e',
+                            800: '#2a4c33',
+                            900: '#233f2c',
+                        },
+                        sunshine: {
+                            100: '#fef9c3',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                        },
+                        peach: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            400: '#fb923c',
+                            500: '#f97316',
+                        },
+                        cream: '#FAF7F2'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #FAF7F2; }
+        .prose h1 { font-size: 1.4rem; font-weight: 800; margin-top: 1rem; margin-bottom: 0.5rem; color: #233f2c; }
+        .prose h2 { font-size: 1.2rem; font-weight: 700; margin-top: 0.75rem; margin-bottom: 0.5rem; color: #325e3e; }
+        .prose h3 { font-size: 1.05rem; font-weight: 700; margin-top: 0.5rem; margin-bottom: 0.25rem; color: #b45309; }
+        .prose ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+        .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .tab-btn.active {
+            background-color: #325e3e;
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(50, 94, 62, 0.25);
+            transform: translateY(-1px);
+        }
+        #trail-map { height: 380px; border-radius: 1.25rem; z-index: 10; }
+        
+        /* Playful 3D Button Utility */
+        .btn-bouncy {
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+        }
+        .btn-bouncy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+        }
+        .btn-bouncy:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        /* Cute pulse animation */
+        @keyframes floatCute {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(2deg); }
+        }
+        .cute-float { animation: floatCute 3.5s ease-in-out infinite; }
+    </style>
+</head>
+<body class="text-stone-800 min-h-screen flex flex-col font-sans selection:bg-matcha-200">
+
+    <!-- Top Cozy Header -->
+    <header class="bg-matcha-700 text-white shadow-sm sticky top-0 z-50 border-b-4 border-matcha-800">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl cute-float cursor-pointer" onclick="fireCheerConfetti()" title="Click for happy confetti!">🥾</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-extrabold tracking-tight">GrassMapper</h1>
+                        <span class="text-[11px] px-2 py-0.5 rounded-full bg-matcha-500 text-white font-bold tracking-wide">
+                            🌿 Touch Grass OS
+                        </span>
+                    </div>
+                    <p class="text-xs text-matcha-100 font-medium">Off-Grid AI Trail Explorer • Powered by Gemma 3</p>
+                </div>
+            </div>
+
+            <!-- Gamification Level & Badges -->
+            <div class="flex flex-wrap items-center gap-2.5 text-xs">
+                <!-- Grass Points Badge with Level Progress -->
+                <div class="px-3.5 py-1.5 rounded-2xl bg-matcha-900/90 text-matcha-100 border-2 border-matcha-600 flex items-center gap-2 font-bold shadow-inner" title="Earn Grass Points by walking, logging hikes, and spotting birds!">
+                    <span class="text-base">🌱</span>
+                    <div>
+                        <span id="badge-points" class="text-sunshine-300 font-extrabold">120</span> <span class="text-[10px] text-matcha-300">GP</span>
+                        <span class="text-[11px] text-white font-semibold ml-1" id="badge-level">• Trail Scout 🥾</span>
+                    </div>
+                </div>
+
+                <!-- Local Gemma Indicator -->
+                <span class="px-3 py-1.5 rounded-2xl bg-matcha-600 text-white border border-matcha-500 font-semibold flex items-center gap-1.5 shadow-sm">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping"></span> Gemma 3 (Local)
+                </span>
+
+                {% if has_serpapi %}
+                <span class="px-3 py-1.5 rounded-2xl bg-amber-900/40 text-amber-200 border border-amber-600/50 font-medium flex items-center gap-1">
+                    🔍 Live Web Search
+                </span>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-2xl bg-stone-800 text-stone-300 border border-stone-700 font-medium flex items-center gap-1">
+                    ⚡ 100% Offline
+                </span>
+                {% endif %}
+
+                {% if has_sentry %}
+                <span class="px-3 py-1.5 rounded-2xl bg-indigo-950 text-indigo-300 border border-indigo-700 font-medium flex items-center gap-1">
+                    📊 Sentry Traced
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Mascot & Side-Quest Banner -->
+    <section class="max-w-7xl mx-auto px-4 pt-4 w-full">
+        <div class="bg-gradient-to-r from-matcha-100 via-peach-50 to-sunshine-100 border-2 border-matcha-200 rounded-3xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Mascot: Sprout the Fox -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-14 h-14 rounded-2xl bg-white border-2 border-peach-200 shadow-sm flex items-center justify-center text-3xl cute-float shrink-0">
+                    🦊
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-matcha-700 bg-matcha-200/60 px-2 py-0.5 rounded-md">Trail Companion</span>
+                        <span class="text-xs font-extrabold text-stone-800">Sprout the Fox</span>
+                    </div>
+                    <p class="text-xs text-stone-600 mt-0.5" id="mascot-dialogue">
+                        "Psst! The forest is waiting! Put on your favorite socks, plan a 30-minute loop, and let's go touch grass!"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Interactive Daily Touch Grass Quests -->
+            <div class="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-2xl border border-stone-200/80 shadow-inner">
+                <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Daily Quest:</span>
+                <label class="flex items-center gap-1.5 text-xs text-stone-700 cursor-pointer hover:text-matcha-700 transition select-none">
+                    <input type="checkbox" id="quest-1" onchange="completeQuest('quest-1', 15)" class="rounded text-matcha-600 focus:ring-matcha-400">
+                    <span>Touch tree bark 🌲</span>
+                </label>
+                <span class="text-stone-300">•</span>
+                <label class="flex items-center gap-1.5 text-xs text-stone-700 cursor-pointer hover:text-matcha-700 transition select-none">
+                    <input type="checkbox" id="quest-2" onchange="completeQuest('quest-2', 15)" class="rounded text-matcha-600 focus:ring-matcha-400">
+                    <span>Spot 1 bird 🐦</span>
+                </label>
+                <button onclick="randomFoxQuote()" class="text-xs bg-peach-100 hover:bg-peach-200 text-peach-700 px-2.5 py-1 rounded-xl font-bold transition ml-2">
+                    💬 Poke Sprout
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cute Stats & Level Progress Ribbon -->
+    <section class="max-w-7xl mx-auto px-4 py-3 w-full">
+        <div class="bg-white rounded-3xl border-2 border-stone-200/80 p-4 shadow-sm grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+            <!-- Streak -->
+            <div class="text-center md:border-r border-stone-200">
+                <div class="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Outdoor Streak</div>
+                <div class="text-xl font-extrabold text-matcha-700 flex items-center justify-center gap-1 mt-0.5">
+                    <span>🔥</span> <span id="stat-streak-val">0</span> <span class="text-xs font-normal text-stone-500">Days</span>
+                </div>
+            </div>
+            <!-- Distance -->
+            <div class="text-center md:border-r border-stone-200">
+                <div class="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Trail Distance</div>
+                <div class="text-xl font-extrabold text-stone-800 mt-0.5" id="stat-km">0.0 km</div>
+            </div>
+            <!-- Screen Free Hours -->
+            <div class="text-center md:border-r border-stone-200">
+                <div class="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Screen-Free Time</div>
+                <div class="text-xl font-extrabold text-matcha-600 mt-0.5" id="stat-hours">0.0 hrs</div>
+            </div>
+            <!-- Sightings -->
+            <div class="text-center md:border-r border-stone-200">
+                <div class="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Species Spotted</div>
+                <div class="text-xl font-extrabold text-peach-500 mt-0.5" id="stat-obs">0 🌿</div>
+            </div>
+            <!-- Visual Level Progress Bar -->
+            <div class="col-span-2 md:col-span-1 px-2">
+                <div class="flex justify-between text-[11px] font-bold text-stone-500 mb-1">
+                    <span>Rank Progress</span>
+                    <span id="level-progress-text">120 / 180 GP</span>
+                </div>
+                <div class="w-full bg-stone-100 rounded-full h-3 overflow-hidden border border-stone-200 p-0.5">
+                    <div id="level-progress-bar" class="bg-gradient-to-r from-matcha-400 to-matcha-600 h-full rounded-full transition-all duration-500" style="width: 65%;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main App Container -->
+    <main class="max-w-7xl mx-auto px-4 py-2 flex-1 w-full space-y-6">
+
+        <!-- Navigation Tabs (Pill Style) -->
+        <div class="flex flex-wrap gap-2.5 bg-stone-200/60 p-1.5 rounded-2xl w-fit">
+            <button onclick="switchTab('plan')" id="tab-plan" class="tab-btn active px-5 py-2.5 rounded-xl font-semibold text-stone-700 hover:text-stone-900 transition flex items-center gap-2 text-sm">
+                🗺️ Trail Planner & Radar Map
+            </button>
+            <button onclick="switchTab('journal')" id="tab-journal" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-stone-700 hover:text-stone-900 transition flex items-center gap-2 text-sm">
+                📓 Hike Journal & History
+            </button>
+            <button onclick="switchTab('observe')" id="tab-observe" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-stone-700 hover:text-stone-900 transition flex items-center gap-2 text-sm">
+                🌿 Nature Sightings & Field ID
+            </button>
+            <button onclick="switchTab('chat')" id="tab-chat" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-stone-700 hover:text-stone-900 transition flex items-center gap-2 text-sm">
+                💬 Naturalist Guide Chat
+            </button>
+        </div>
+
+        <!-- 1. TRAIL PLANNER & MAP RADAR TAB -->
+        <section id="view-plan" class="space-y-6">
+
+            <!-- Cute Curated Presets Carousel -->
+            <div class="bg-white border-2 border-matcha-100 p-4 rounded-3xl shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-xs font-bold text-matcha-800">
+                        <span>✨ Quick Adventure Presets:</span>
+                        <span class="font-normal text-stone-500">Click to instantly drop waypoints on the radar!</span>
+                    </div>
+                    <span class="text-[11px] text-peach-500 font-bold bg-peach-50 px-2 py-0.5 rounded-full">+10 GP on Generation</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    <button onclick="loadPreset('Shenandoah National Park, VA', 'White Oak Canyon', 'moderate', 11.5, 'waterfalls, fall foliage, black bears', 'half day', 38.5834, -78.3589)" class="p-2.5 rounded-2xl bg-matcha-50 hover:bg-matcha-100 text-matcha-800 border-2 border-matcha-200 transition text-left flex items-center justify-between group">
+                        <div>
+                            <div class="font-bold text-xs flex items-center gap-1.5">🌊 Shenandoah Waterfalls</div>
+                            <div class="text-[11px] text-matcha-600 font-medium">11.5 km • 6 Cascades • Moderate</div>
+                        </div>
+                        <span class="text-lg group-hover:scale-125 transition">🥾</span>
+                    </button>
+                    <button onclick="loadPreset('Blue Ridge Parkway, NC', 'Craggy Pinnacle', 'easy', 4.5, 'mountain views, rhododendron, warblers', '2 hours', 35.7001, -82.3815)" class="p-2.5 rounded-2xl bg-peach-50 hover:bg-peach-100 text-peach-800 border-2 border-peach-200 transition text-left flex items-center justify-between group">
+                        <div>
+                            <div class="font-bold text-xs flex items-center gap-1.5">🦅 Blue Ridge Vista</div>
+                            <div class="text-[11px] text-peach-600 font-medium">4.5 km • 360° Ridge • Easy</div>
+                        </div>
+                        <span class="text-lg group-hover:scale-125 transition">🌄</span>
+                    </button>
+                    <button onclick="loadPreset('Great Smoky Mountains, TN', 'Alum Cave to Mt LeConte', 'hard', 17.5, 'old growth hemlock, peregrine falcons', 'full day', 35.6296, -83.4509)" class="p-2.5 rounded-2xl bg-sunshine-100/70 hover:bg-sunshine-100 text-amber-900 border-2 border-sunshine-300 transition text-left flex items-center justify-between group">
+                        <div>
+                            <div class="font-bold text-xs flex items-center gap-1.5">⛰️ Smoky Mountain Peak</div>
+                            <div class="text-[11px] text-amber-700 font-medium">17.5 km • Cloud Forest • Strenuous</div>
+                        </div>
+                        <span class="text-lg group-hover:scale-125 transition">🧗</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top Row: Form + Interactive Map -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Planning Form (5 Cols) -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200/80 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-base font-extrabold text-stone-800 flex items-center gap-2">
+                            <span>🧭 Trail Setup</span>
+                        </h2>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-matcha-100 text-matcha-700 font-bold">Offline AI</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-600 mb-1">Region, Forest or Trail Name</label>
+                        <input id="plan-region" type="text" value="Shenandoah National Park, VA" class="w-full px-3.5 py-2.5 text-sm border-2 border-stone-200 rounded-2xl focus:border-matcha-500 focus:ring-2 focus:ring-matcha-200 outline-none transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-600 mb-1">Difficulty</label>
+                            <select id="plan-difficulty" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 bg-white font-medium">
+                                <option value="easy">Easy (Casual Stroll)</option>
+                                <option value="moderate" selected>Moderate (Day Hike)</option>
+                                <option value="hard">Hard (Peak Climb)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-600 mb-1">Distance (km)</label>
+                            <input id="plan-distance" type="number" placeholder="e.g. 10" value="11" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 font-medium">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-600 mb-1">Wildlife & Nature Interests</label>
+                        <input id="plan-interests" type="text" value="Waterfalls, fall foliage, songbirds" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl focus:border-matcha-500 outline-none font-medium">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-600 mb-1">Time Budget</label>
+                        <input id="plan-duration" type="text" value="3 to 4 hours" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl focus:border-matcha-500 outline-none font-medium">
+                    </div>
+
+                    <button onclick="generatePlan()" id="btn-generate-plan" class="w-full bg-matcha-600 hover:bg-matcha-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md btn-bouncy flex justify-center items-center gap-2">
+                        <span>✨ Generate Off-Grid Itinerary</span>
+                    </button>
+                </div>
+
+                <!-- Interactive OpenStreetMap & Waypoints (7 Cols) -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200/80 flex flex-col justify-between space-y-3">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <h3 class="font-extrabold text-stone-800 text-sm flex items-center gap-1.5">
+                                <span>🗺️ Interactive Trail Radar</span>
+                            </h3>
+                            <span class="text-[11px] text-matcha-700 font-semibold bg-matcha-50 px-2 py-0.5 rounded-md">
+                                💡 Tip: Click anywhere on the map to set trailhead!
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="useDeviceGPS()" class="text-xs bg-matcha-100 hover:bg-matcha-200 text-matcha-800 font-bold px-2.5 py-1.5 rounded-xl border border-matcha-300 transition flex items-center gap-1" title="Center map at your actual GPS coordinates">
+                                <span>🛰️</span> My GPS
+                            </button>
+                            <button onclick="simulateWalk()" class="text-xs bg-peach-100 hover:bg-peach-200 text-peach-800 font-extrabold px-2.5 py-1.5 rounded-xl border border-peach-300 transition flex items-center gap-1" title="Simulate walking forward">
+                                <span>🚶</span> Step (+100m)
+                            </button>
+                            <button onclick="recenterMap()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-2.5 py-1.5 rounded-xl border border-stone-200 transition">
+                                🎯 Center
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mini Search Bar on the Map -->
+                    <div class="flex gap-2">
+                        <input id="map-search-input" type="text" placeholder="🔍 Search any park, mountain, or trail (e.g. Yosemite, Zion, Swiss Alps)..." class="flex-1 px-3.5 py-2 text-xs border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 bg-stone-50 font-medium transition" onkeydown="if(event.key==='Enter') searchMapLocation()">
+                        <button onclick="searchMapLocation()" class="bg-matcha-600 hover:bg-matcha-700 text-white text-xs font-extrabold px-4 py-2 rounded-2xl shadow-sm transition btn-bouncy flex items-center gap-1">
+                            <span>🚀 Fly to Location</span>
+                        </button>
+                    </div>
+
+                    <!-- Leaflet Map Container -->
+                    <div id="trail-map" class="shadow-inner border-2 border-stone-200 cursor-crosshair"></div>
+
+                    <!-- Map Legend Badges -->
+                    <div class="grid grid-cols-3 gap-2 text-[11px] bg-stone-50 p-2.5 rounded-2xl border border-stone-200 text-stone-600">
+                        <div class="flex items-center gap-1.5 justify-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> <b>🏁 Trailhead</b>
+                        </div>
+                        <div class="flex items-center gap-1.5 justify-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <b>🌄 Vista Ridge</b>
+                        </div>
+                        <div class="flex items-center gap-1.5 justify-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> <b>🦅 Wildlife Spot</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Generated Plan Briefing with Voice Narration -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200/80 space-y-4 min-h-[300px]">
+                <div class="flex flex-wrap justify-between items-center border-b border-stone-100 pb-3 gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-xl">📜</span>
+                        <h3 class="font-extrabold text-stone-800 text-base">
+                            Off-Grid Trail Briefing
+                        </h3>
+                        <span id="plan-time-tag" class="text-xs text-stone-400 font-medium">Ready</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Voice Narration Button -->
+                        <button onclick="toggleAudioBriefing()" id="btn-audio" class="hidden text-xs bg-sunshine-100 hover:bg-sunshine-300 text-amber-900 font-extrabold px-3.5 py-2 rounded-2xl border border-sunshine-400 transition flex items-center gap-1.5 shadow-sm">
+                            <span id="audio-icon">🔊</span> <span id="audio-text">Pocket Audio Briefing</span>
+                        </button>
+
+                        <!-- Save to Journal -->
+                        <button onclick="saveCurrentPlan()" id="btn-save-plan" class="hidden text-xs bg-matcha-600 hover:bg-matcha-700 text-white font-extrabold px-4 py-2 rounded-2xl transition shadow-sm btn-bouncy">
+                            💾 Save to Journal (+15 🌱)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Markdown Content Stream Area -->
+                <div id="plan-output" class="prose max-w-none text-stone-700 text-sm leading-relaxed">
+                    <div class="text-stone-400 italic text-center py-10">
+                        Pick a preset above or click <b>Generate Off-Grid Itinerary</b>.<br>
+                        Local Gemma 3 will write your trail plan, packing checklist, and birding tips!
+                    </div>
+                </div>
+
+                <div id="plan-loading" class="hidden items-center gap-2 text-matcha-700 text-xs font-bold pt-2">
+                    <span class="animate-spin inline-block w-4 h-4 border-2 border-matcha-600 border-t-transparent rounded-full"></span>
+                    Gemma 3 is generating your trail briefing...
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 2. HIKE JOURNAL TAB -->
+        <section id="view-journal" class="hidden space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-extrabold text-stone-800">📓 Your Outdoor Journal</h2>
+                    <p class="text-xs text-stone-500">Your local, private record of outdoor memories.</p>
+                </div>
+                <button onclick="toggleModal('modal-log-hike')" class="bg-matcha-600 hover:bg-matcha-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-2xl shadow-sm transition btn-bouncy">
+                    + Log Completed Hike (+25 🌱)
+                </button>
+            </div>
+
+            <div id="journal-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- 3. NATURE SIGHTINGS TAB -->
+        <section id="view-observe" class="hidden space-y-6">
+            <div class="max-w-2xl mx-auto bg-white p-7 rounded-3xl shadow-sm border-2 border-stone-200/80 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-extrabold text-stone-800 flex items-center gap-2">
+                        <span>🌿 Log a Nature Sighting & Field ID</span>
+                    </h2>
+                    <span class="text-xs font-extrabold text-matcha-700 bg-matcha-100 px-3 py-1 rounded-full border border-matcha-200">+15 Grass Points</span>
+                </div>
+                <p class="text-xs text-stone-500">
+                    Spotted a migrating raptor, unusual fungi, or native wildflower? Log it here, and local Gemma 3 will generate an authentic naturalist field note for your journal.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-stone-600 mb-1">Category</label>
+                        <select id="obs-cat" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 bg-white font-medium">
+                            <option value="plant">🌱 Plant / Wildflower</option>
+                            <option value="bird">🐦 Bird / Raptor</option>
+                            <option value="insect">🦋 Insect / Pollinator</option>
+                            <option value="fungi">🍄 Fungi / Lichen</option>
+                            <option value="geology">🪨 Geology / Rock Formation</option>
+                            <option value="other">🐾 Wildlife / Track</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-stone-600 mb-1">Common or Scientific Name</label>
+                        <input id="obs-name" type="text" placeholder="e.g. Pileated Woodpecker" class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Field Observations & Habitat Notes</label>
+                    <textarea id="obs-desc" rows="3" placeholder="Seen hammering on a dead white oak near the stream; distinct crimson crest..." class="w-full px-3 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 font-medium"></textarea>
+                </div>
+
+                <button onclick="submitObservation()" id="btn-submit-obs" class="w-full bg-matcha-600 hover:bg-matcha-700 text-white font-extrabold py-3.5 rounded-2xl shadow-sm transition btn-bouncy">
+                    🌿 Identify & Add to Field Journal
+                </button>
+
+                <div id="obs-result" class="hidden p-4 rounded-2xl bg-matcha-50 border-2 border-matcha-200 text-xs text-matcha-900 space-y-2">
+                    <div class="font-extrabold text-matcha-800 flex items-center gap-1.5">
+                        <span>📖</span> Gemma Naturalist Field Note:
+                    </div>
+                    <p id="obs-ai-text" class="leading-relaxed"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. CHAT TAB -->
+        <section id="view-chat" class="hidden space-y-4 max-w-3xl mx-auto">
+            <div class="bg-white rounded-3xl shadow-sm border-2 border-stone-200/80 flex flex-col h-[580px] overflow-hidden">
+                <div class="p-4 border-b border-stone-100 flex justify-between items-center bg-matcha-50/50">
+                    <div>
+                        <h2 class="font-extrabold text-stone-800 flex items-center gap-2">
+                            <span>🌲 Naturalist Field Assistant</span>
+                        </h2>
+                        <p class="text-xs text-stone-500">Ask about edible berries, bird songs, hiking boots, or Leave No Trace principles.</p>
+                    </div>
+                    <span class="text-xs px-3 py-1 rounded-full bg-matcha-100 text-matcha-700 font-extrabold">Offline Gemma</span>
+                </div>
+
+                <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-sm">
+                    <div class="bg-matcha-50 text-matcha-900 p-3.5 rounded-2xl max-w-[85%] border border-matcha-200/60 shadow-sm">
+                        Hello hiker! 🌿 I am your trail companion powered by Gemma 3. Ask me anything about identifying trees, packing essentials, or backcountry safety skills before you head out!
+                    </div>
+                </div>
+
+                <div class="p-3 border-t border-stone-100 bg-stone-50 flex gap-2">
+                    <input id="chat-input" type="text" placeholder="e.g. How do I tell red oak from white oak?" class="flex-1 px-4 py-2.5 text-sm border-2 border-stone-200 rounded-2xl outline-none focus:border-matcha-500 font-medium" onkeydown="if(event.key==='Enter') sendChatMessage()">
+                    <button onclick="sendChatMessage()" class="bg-matcha-600 hover:bg-matcha-700 text-white px-5 py-2.5 rounded-2xl text-sm font-extrabold transition shadow-sm btn-bouncy">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Log Hike -->
+    <div id="modal-log-hike" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border-2 border-stone-200">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-extrabold text-stone-800 text-base">🥾 Log Completed Expedition</h3>
+                <button onclick="toggleModal('modal-log-hike')" class="text-stone-400 hover:text-stone-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold mb-1">Trail Name *</label>
+                    <input id="log-name" type="text" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="White Oak Canyon Trail">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Location / National Park</label>
+                    <input id="log-loc" type="text" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="Shenandoah, VA">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1">Distance (km)</label>
+                        <input id="log-dist" type="number" step="0.1" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="11.5">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Duration (minutes)</label>
+                        <input id="log-dur" type="number" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="210">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1">How did you feel?</label>
+                        <select id="log-mood" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500 bg-white">
+                            <option value="great">😄 Full of Energy & Joy</option>
+                            <option value="good" selected>🙂 Great Workout</option>
+                            <option value="okay">😐 Relaxing & Casual</option>
+                            <option value="tough">😓 Challenging Climb</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Weather</label>
+                        <input id="log-weather" type="text" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="Clear, 16°C, crisp breeze">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Field Notes & Memories</label>
+                    <textarea id="log-notes" rows="2" class="w-full px-3.5 py-2 border-2 border-stone-200 rounded-xl outline-none focus:border-matcha-500" placeholder="Stream crossings were dry. Golden birch leaves everywhere!"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="toggleModal('modal-log-hike')" class="px-4 py-2 text-xs text-stone-500 hover:text-stone-700 font-bold">Cancel</button>
+                <button onclick="saveHikeLog()" class="px-5 py-2 text-xs font-extrabold bg-matcha-600 hover:bg-matcha-700 text-white rounded-xl shadow-sm btn-bouncy">Save (+25 🌱)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-matcha-900 text-matcha-200 text-xs py-5 text-center border-t-4 border-matcha-950 mt-8">
+        <p class="font-medium">Built for Hacktoberfest 2026 • 🌿 Touch Grass Challenge • 100% Local Open-Source AI • No Telemetry</p>
+    </footer>
+
+    <!-- App Scripts -->
+    <script>
+        let currentPlanMarkdown = '';
+        let chatHistory = [];
+        let mapInstance = null;
+        let routePolyline = null;
+        let currentHikerMarker = null;
+        let hikerStep = 0;
+        let activeCoordinates = [38.5834, -78.3589];
+        let speechSynth = window.speechSynthesis || null;
+        let isSpeaking = false;
+
+        // Cute sound synthesis via Web Audio API (zero external mp3 assets needed!)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playChime(freq = 587.33) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } catch(e) {}
+        }
+
+        function fireCheerConfetti() {
+            playChime(659.25);
+            if (window.confetti) {
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.8 },
+                    colors: ['#4f9460', '#facc15', '#fb923c', '#ffffff']
+                });
+            }
+        }
+
+        // Mascot Dialogues
+        const foxQuotes = [
+            "Lace up those boots, human! Your screen time is looking a little high today 👀",
+            "Did you know? Walking under trees releases phytoncides that boost your immune system! 🌲",
+            "I smell fresh pine needles and cool mountain air. Let's go exploration mode! 🦊",
+            "Don't forget your water bottle and trail mix! Stay hydrated out there! 💧",
+            "You earned Grass Points! Every step in nature makes your spirit lighter 🌱"
+        ];
+        function randomFoxQuote() {
+            const quote = foxQuotes[Math.floor(Math.random() * foxQuotes.length)];
+            document.getElementById('mascot-dialogue').innerText = `"${quote}"`;
+            playChime(523.25);
+        }
+
+        // Gamification Grass Points
+        let grassPoints = parseInt(localStorage.getItem('grass_points') || '120');
+
+        function updatePointsUI() {
+            document.getElementById('badge-points').innerText = grassPoints;
+            let level = "Trail Scout 🥾";
+            let nextThreshold = 180;
+            let prevThreshold = 80;
+
+            if (grassPoints >= 300) {
+                level = "Peak Bagger ⛰️";
+                nextThreshold = 500;
+                prevThreshold = 300;
+            } else if (grassPoints >= 180) {
+                level = "Forest Ranger 🌲";
+                nextThreshold = 300;
+                prevThreshold = 180;
+            } else if (grassPoints >= 80) {
+                level = "Trail Scout 🥾";
+                nextThreshold = 180;
+                prevThreshold = 80;
+            } else {
+                level = "Seedling 🌱";
+                nextThreshold = 80;
+                prevThreshold = 0;
+            }
+
+            document.getElementById('badge-level').innerText = "• " + level;
+            document.getElementById('level-progress-text').innerText = `${grassPoints} / ${nextThreshold} GP`;
+            const pct = Math.min(100, Math.max(10, ((grassPoints - prevThreshold) / (nextThreshold - prevThreshold)) * 100));
+            document.getElementById('level-progress-bar').style.width = pct + '%';
+
+            localStorage.setItem('grass_points', grassPoints);
+        }
+
+        function addPoints(pts) {
+            grassPoints += pts;
+            updatePointsUI();
+            fireCheerConfetti();
+        }
+
+        function completeQuest(id, pts) {
+            const cb = document.getElementById(id);
+            if (cb.checked) {
+                addPoints(pts);
+                cb.disabled = true;
+            }
+        }
+
+        // Tab Navigation
+        function switchTab(tabId) {
+            playChime(440);
+            ['plan', 'journal', 'observe', 'chat'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('active');
+            });
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            if (tabId === 'journal') loadJournal();
+            if (tabId === 'plan' && mapInstance) {
+                setTimeout(() => mapInstance.invalidateSize(), 200);
+            }
+        }
+
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+            playChime(392);
+        }
+
+        // Offline Popular Parks Dictionary (Works even with zero internet!)
+        const OFFLINE_PARKS = {
+            'yosemite': [37.8651, -119.5383, 'Yosemite National Park, CA'],
+            'yellowstone': [44.4280, -110.5885, 'Yellowstone National Park, WY'],
+            'zion': [37.2982, -113.0263, 'Zion National Park, UT'],
+            'grand canyon': [36.1069, -112.1129, 'Grand Canyon National Park, AZ'],
+            'rocky mountain': [40.3428, -105.6836, 'Rocky Mountain National Park, CO'],
+            'glacier': [48.7596, -113.7870, 'Glacier National Park, MT'],
+            'rainier': [46.8523, -121.7603, 'Mount Rainier National Park, WA'],
+            'acadia': [44.3386, -68.2733, 'Acadia National Park, ME'],
+            'olympic': [47.8021, -123.6044, 'Olympic National Park, WA'],
+            'smoky': [35.6131, -83.5532, 'Great Smoky Mountains, TN'],
+            'shenandoah': [38.5834, -78.3589, 'Shenandoah National Park, VA'],
+            'blue ridge': [35.7001, -82.3815, 'Blue Ridge Parkway, NC'],
+            'banff': [51.4968, -115.9281, 'Banff National Park, Canada'],
+            'alps': [45.8326, 6.8652, 'Mont Blanc, Alps'],
+            'dolomites': [46.4102, 11.8440, 'Dolomites, Italy'],
+            'lake district': [54.4609, -3.0886, 'Lake District, UK'],
+            'everglades': [25.2866, -80.8987, 'Everglades National Park, FL'],
+            'arches': [38.7331, -109.5925, 'Arches National Park, UT'],
+            'joshua tree': [33.8734, -115.9010, 'Joshua Tree National Park, CA'],
+            'teton': [43.7904, -110.6818, 'Grand Teton National Park, WY'],
+            'himalayas': [27.9881, 86.9250, 'Mount Everest Base Camp, Himalayas']
+        };
+
+        // Map Setup via Leaflet (OpenStreetMap)
+        function initMap() {
+            if (mapInstance) return;
+
+            mapInstance = L.map('trail-map').setView(activeCoordinates, 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(mapInstance);
+
+            // Click listener: Click anywhere on the map to set your starting location!
+            mapInstance.on('click', (e) => {
+                const { lat, lng } = e.latlng;
+                const locName = `Trailhead (${lat.toFixed(3)}°N, ${lng.toFixed(3)}°W)`;
+                setLocation(lat, lng, locName);
+                fireCheerConfetti();
+            });
+
+            drawSampleRoute(activeCoordinates[0], activeCoordinates[1]);
+        }
+
+        function setLocation(lat, lng, name) {
+            activeCoordinates = [lat, lng];
+            if (name) {
+                document.getElementById('plan-region').value = name;
+                document.getElementById('map-search-input').value = name;
+            }
+            if (mapInstance) {
+                mapInstance.flyTo(activeCoordinates, 13, { duration: 1.2 });
+                drawSampleRoute(lat, lng);
+            }
+            playChime(587.33);
+        }
+
+        async function searchMapLocation(query) {
+            const inputVal = (query || document.getElementById('map-search-input').value || document.getElementById('plan-region').value).trim();
+            if (!inputVal) return;
+
+            // 1. Check offline dictionary first (instant & offline)
+            const lower = inputVal.toLowerCase();
+            for (const [key, coords] of Object.entries(OFFLINE_PARKS)) {
+                if (lower.includes(key)) {
+                    setLocation(coords[0], coords[1], coords[2]);
+                    return;
+                }
+            }
+
+            // 2. Online Geocode via OpenStreetMap Nominatim
+            try {
+                const btn = document.querySelector('button[onclick="searchMapLocation()"]');
+                if (btn) btn.innerText = 'Searching...';
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputVal)}&limit=1`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    const displayName = data[0].display_name.split(',').slice(0, 2).join(',');
+                    setLocation(lat, lon, displayName);
+                    if (btn) btn.innerHTML = '<span>🚀 Fly to Location</span>';
+                    return;
+                }
+            } catch (err) {
+                console.warn("Geocoding service unavailable", err);
+            } finally {
+                const btn = document.querySelector('button[onclick="searchMapLocation()"]');
+                if (btn) btn.innerHTML = '<span>🚀 Fly to Location</span>';
+            }
+
+            alert(`Could not automatically find coordinates for "${inputVal}". Click anywhere directly on the map to set your custom trailhead!`);
+        }
+
+        function useDeviceGPS() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                setLocation(lat, lng, "My Live Trailhead");
+                fireCheerConfetti();
+            }, (err) => {
+                alert("Could not access GPS coordinates: " + err.message);
+            });
+        }
+
+        function drawSampleRoute(lat, lng) {
+            if (routePolyline) mapInstance.removeLayer(routePolyline);
+            if (currentHikerMarker) mapInstance.removeLayer(currentHikerMarker);
+
+            const waypoints = [
+                [lat, lng],
+                [lat + 0.008, lng + 0.006],
+                [lat + 0.015, lng + 0.012],
+                [lat + 0.021, lng + 0.007],
+                [lat + 0.014, lng - 0.004],
+                [lat, lng]
+            ];
+
+            routePolyline = L.polyline(waypoints, {
+                color: '#3d774c',
+                weight: 5,
+                opacity: 0.85,
+                dashArray: '6, 8'
+            }).addTo(mapInstance);
+
+            L.circleMarker(waypoints[0], { radius: 8, color: '#2a4c33', fillColor: '#4f9460', fillOpacity: 1 })
+                .addTo(mapInstance)
+                .bindPopup("<b>🏁 Trailhead & Creek Start</b><br>Fresh Water Station");
+
+            L.circleMarker(waypoints[2], { radius: 7, color: '#b45309', fillColor: '#f59e0b', fillOpacity: 1 })
+                .addTo(mapInstance)
+                .bindPopup("<b>🌄 Panoramic Ridge Vista</b><br>Great spot for taking a breath");
+
+            L.circleMarker(waypoints[3], { radius: 7, color: '#4338ca', fillColor: '#6366f1', fillOpacity: 1 })
+                .addTo(mapInstance)
+                .bindPopup("<b>🦅 Wildlife Hotspot</b><br>Look up for raptors & woodpeckers!");
+
+            currentHikerMarker = L.circleMarker(waypoints[0], { radius: 9, color: '#e11d48', fillColor: '#f43f5e', fillOpacity: 1 })
+                .addTo(mapInstance)
+                .bindPopup("<b>🚶 Your Live Trail Marker</b>");
+
+            mapInstance.fitBounds(routePolyline.getBounds(), { padding: [30, 30] });
+        }
+
+        function simulateWalk() {
+            if (!routePolyline) return;
+            const pts = routePolyline.getLatLngs();
+            hikerStep = (hikerStep + 1) % pts.length;
+            currentHikerMarker.setLatLng(pts[hikerStep]);
+            currentHikerMarker.openPopup();
+            mapInstance.panTo(pts[hikerStep]);
+            playChime(659.25);
+            addPoints(5);
+        }
+
+        function recenterMap() {
+            if (mapInstance && routePolyline) {
+                mapInstance.fitBounds(routePolyline.getBounds(), { padding: [30, 30] });
+            }
+        }
+
+        function loadPreset(region, trail, diff, dist, interests, duration, lat, lng) {
+            document.getElementById('plan-region').value = region;
+            document.getElementById('plan-difficulty').value = diff;
+            document.getElementById('plan-distance').value = dist;
+            document.getElementById('plan-interests').value = interests;
+            document.getElementById('plan-duration').value = duration;
+
+            activeCoordinates = [lat, lng];
+            if (mapInstance) {
+                mapInstance.setView(activeCoordinates, 13);
+                drawSampleRoute(lat, lng);
+            }
+            generatePlan();
+        }
+
+        // Fetch Stats
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-streak-val').innerText = data.streak;
+                document.getElementById('stat-km').innerText = `${data.total_km} km`;
+                document.getElementById('stat-hours').innerText = `${data.total_hours} hrs`;
+                document.getElementById('stat-obs').innerText = data.total_observations;
+            } catch (err) {
+                console.error("Failed to load stats", err);
+            }
+        }
+
+        // Generate Trail Plan via SSE Stream
+        async function generatePlan() {
+            const btn = document.getElementById('btn-generate-plan');
+            const loading = document.getElementById('plan-loading');
+            const output = document.getElementById('plan-output');
+            const saveBtn = document.getElementById('btn-save-plan');
+            const audioBtn = document.getElementById('btn-audio');
+            const timeTag = document.getElementById('plan-time-tag');
+
+            btn.disabled = true;
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+            output.innerHTML = '';
+            currentPlanMarkdown = '';
+            saveBtn.classList.add('hidden');
+            audioBtn.classList.add('hidden');
+            timeTag.innerText = 'Gemma is thinking...';
+            playChime(523.25);
+
+            const payload = {
+                region: document.getElementById('plan-region').value,
+                difficulty: document.getElementById('plan-difficulty').value,
+                distance: document.getElementById('plan-distance').value,
+                interests: document.getElementById('plan-interests').value,
+                duration: document.getElementById('plan-duration').value
+            };
+
+            // Automatically fly the map to the requested region
+            searchMapLocation(payload.region);
+
+            try {
+                const response = await fetch('/api/plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const raw = line.slice(6);
+                            try {
+                                const parsed = JSON.parse(raw);
+                                if (parsed.token) {
+                                    currentPlanMarkdown += parsed.token;
+                                    output.innerHTML = marked.parse(currentPlanMarkdown);
+                                }
+                                if (parsed.done) {
+                                    saveBtn.classList.remove('hidden');
+                                    audioBtn.classList.remove('hidden');
+                                    timeTag.innerText = 'Generated ' + new Date().toLocaleTimeString();
+                                    addPoints(10);
+                                }
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                output.innerHTML = `<div class="text-rose-600 font-bold p-3 bg-rose-50 rounded-xl">Error connecting to local AI server: ${err}</div>`;
+            } finally {
+                btn.disabled = false;
+                loading.classList.add('hidden');
+                loading.classList.remove('flex');
+            }
+        }
+
+        // Voice Narration
+        function toggleAudioBriefing() {
+            if (!speechSynth) {
+                alert("Speech synthesis is not supported on this browser.");
+                return;
+            }
+
+            if (isSpeaking) {
+                speechSynth.cancel();
+                isSpeaking = false;
+                document.getElementById('audio-icon').innerText = '🔊';
+                document.getElementById('audio-text').innerText = 'Pocket Audio Briefing';
+                return;
+            }
+
+            const plainText = currentPlanMarkdown
+                .replace(/#+\s+/g, '')
+                .replace(/[*_`]/g, '')
+                .replace(/\[.*?\]\(.*?\)/g, '');
+
+            const utter = new SpeechSynthesisUtterance(plainText);
+            utter.rate = 1.0;
+            utter.pitch = 1.0;
+            utter.onend = () => {
+                isSpeaking = false;
+                document.getElementById('audio-icon').innerText = '🔊';
+                document.getElementById('audio-text').innerText = 'Pocket Audio Briefing';
+            };
+
+            speechSynth.speak(utter);
+            isSpeaking = true;
+            document.getElementById('audio-icon').innerText = '⏹️';
+            document.getElementById('audio-text').innerText = 'Stop Audio';
+        }
+
+        // Save Current Plan to Journal
+        async function saveCurrentPlan() {
+            const trailName = document.getElementById('plan-region').value + " Loop";
+            const distance = document.getElementById('plan-distance').value || 8;
+            const diff = document.getElementById('plan-difficulty').value;
+
+            await fetch('/api/journal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trail_name: trailName,
+                    location: document.getElementById('plan-region').value,
+                    distance_km: distance,
+                    difficulty: diff,
+                    notes: "Saved from GrassMapper Gemma briefing"
+                })
+            });
+
+            addPoints(15);
+            loadStats();
+        }
+
+        // Load Journal Entries
+        async function loadJournal() {
+            const list = document.getElementById('journal-list');
+            list.innerHTML = '<div class="text-stone-400 italic">Loading your adventures...</div>';
+
+            try {
+                const res = await fetch('/api/journal');
+                const hikes = await res.json();
+
+                if (!hikes.length) {
+                    list.innerHTML = '<div class="text-stone-500 italic p-8 bg-white rounded-3xl border-2 border-stone-200 col-span-2 text-center">No hikes logged yet! Step outside and record your first expedition.</div>';
+                    return;
+                }
+
+                list.innerHTML = hikes.map(h => `
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-stone-200/80 space-y-2 hover:border-matcha-400 transition">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-extrabold text-stone-800 text-base">${h.trail_name}</h3>
+                                <div class="text-xs text-stone-400 font-medium">📍 ${h.location || 'Wilderness'} • 📅 ${h.date}</div>
+                            </div>
+                            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-matcha-100 text-matcha-700 font-extrabold uppercase tracking-wide">${h.difficulty}</span>
+                        </div>
+                        <div class="flex gap-4 text-xs text-stone-600 font-semibold py-1">
+                            <span>📏 ${h.distance_km ? h.distance_km + ' km' : 'N/A'}</span>
+                            <span>⏱️ ${h.duration_min ? h.duration_min + ' mins' : 'N/A'}</span>
+                            <span>🌤️ ${h.weather || 'Clear'}</span>
+                        </div>
+                        ${h.notes ? `<p class="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-2xl border border-stone-100">${h.notes}</p>` : ''}
+                        ${h.observations && h.observations.length ? `
+                            <div class="text-xs text-matcha-700 pt-1 font-bold">
+                                🌿 Wildlife Sightings: ${h.observations.map(o => o.name).join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = '<div class="text-rose-600">Failed to load journal.</div>';
+            }
+        }
+
+        // Save Hike from Modal
+        async function saveHikeLog() {
+            const name = document.getElementById('log-name').value.trim();
+            if (!name) return alert('Trail name is required!');
+
+            await fetch('/api/journal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trail_name: name,
+                    location: document.getElementById('log-loc').value,
+                    distance_km: document.getElementById('log-dist').value,
+                    duration_min: document.getElementById('log-dur').value,
+                    mood: document.getElementById('log-mood').value,
+                    weather: document.getElementById('log-weather').value,
+                    notes: document.getElementById('log-notes').value
+                })
+            });
+
+            toggleModal('modal-log-hike');
+            addPoints(25);
+            loadStats();
+            loadJournal();
+        }
+
+        // Submit Nature Observation
+        async function submitObservation() {
+            const btn = document.getElementById('btn-submit-obs');
+            const name = document.getElementById('obs-name').value.trim();
+            if (!name) return alert('Species or item name is required!');
+
+            btn.disabled = true;
+            btn.innerText = 'Consulting Gemma Naturalist...';
+
+            try {
+                const res = await fetch('/api/observe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category: document.getElementById('obs-cat').value,
+                        name: name,
+                        description: document.getElementById('obs-desc').value
+                    })
+                });
+                const data = await res.json();
+                document.getElementById('obs-ai-text').innerText = data.ai_info;
+                document.getElementById('obs-result').classList.remove('hidden');
+                addPoints(15);
+                loadStats();
+            } catch (e) {
+                alert('Error submitting observation: ' + e);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '🌿 Identify & Add to Field Journal';
+            }
+        }
+
+        // Interactive Chat with Naturalist AI
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="bg-matcha-600 text-white p-3.5 rounded-2xl max-w-[85%] self-end ml-auto shadow-sm font-medium">${msg}</div>`;
+            input.value = '';
+
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'bg-stone-100 text-stone-800 p-3.5 rounded-2xl max-w-[85%] border border-stone-200 shadow-sm font-medium';
+            aiBubble.innerText = 'Thinking...';
+            box.appendChild(aiBubble);
+            box.scrollTop = box.scrollHeight;
+
+            let responseText = '';
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, history: chatHistory })
+                });
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                aiBubble.innerText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const parsed = JSON.parse(line.slice(6));
+                                if (parsed.token) {
+                                    responseText += parsed.token;
+                                    aiBubble.innerHTML = marked.parse(responseText);
+                                    box.scrollTop = box.scrollHeight;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+                chatHistory.push({ role: 'user', content: msg });
+                chatHistory.push({ role: 'assistant', content: responseText });
+            } catch (err) {
+                aiBubble.innerText = 'Error connecting to trail assistant.';
+            }
+        }
+
+        // Initial setup
+        window.onload = () => {
+            initMap();
+            loadStats();
+            updatePointsUI();
+        };
+    </script>
+</body>
+</html>
